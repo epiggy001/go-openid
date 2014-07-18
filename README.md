@@ -1,4 +1,4 @@
 go-openid
 =========
 
-An simple open id implementation with golang
+A simple open id implementation with golang
