@@ -1,5 +1,9 @@
 package oauth2
 
+import (
+  "fmt"
+)
+
 const (
   E_INVALID_REQUEST int = iota + 1
   E_UNAUTHORIZED_CLIENT
@@ -25,7 +29,7 @@ func (ae *authError) ErrorString() string {
 // Implements the error api
 func (ae *authError) Error() string {
   // TODO: Add client info
-  return ae.err
+  return fmt.Sprintf("%s has error: %s", ae.client, ae.err)
 }
 
 func NewAuthError(client *Client, n int) *authError {
