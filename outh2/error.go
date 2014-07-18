@@ -19,7 +19,6 @@ type authError struct {
 }
 
 func (ae *authError) ErrorString() string {
-  // TODO: Add client info
   return ae.err
 }
 
@@ -31,26 +30,26 @@ func (ae *authError) Error() string {
 
 func NewAuthError(client *Client, n int) *authError {
   switch n {
-    case E_INVALID_REQUEST:
-      return &authError{"invalid_request", client}
-    case E_UNAUTHORIZED_CLIENT:
-      return &authError{"unauthorized_client", client}
-    case E_ACCESS_DENIED:
-      return &authError{"access_denied", client}
-    case E_UNSUPPORTED_RESPONSE_TYPE:
-      return &authError{"unsupported_response_type", client}
-    case E_INVALID_SCOPE:
-      return &authError{"invalid_scope", client}
-    case E_SERVER_ERROR:
-      return &authError{"server_error", client}
-    case E_TEMPORARILY_UNAVAILABLE:
-      return &authError{"temporarily_unavailable", client}
-    case E_UNSUPPORTED_GRANT_TYPE:
-      return &authError{"unsupported_grant_type", client}
-    case E_INVALID_GRANT:
-      return &authError{"invalid_grant", client}
-    case E_INVALID_CLIENT:
-      return &authError{"invalid_client", client}
+  case E_INVALID_REQUEST:
+    return &authError{"invalid_request", client}
+  case E_UNAUTHORIZED_CLIENT:
+    return &authError{"unauthorized_client", client}
+  case E_ACCESS_DENIED:
+    return &authError{"access_denied", client}
+  case E_UNSUPPORTED_RESPONSE_TYPE:
+    return &authError{"unsupported_response_type", client}
+  case E_INVALID_SCOPE:
+    return &authError{"invalid_scope", client}
+  case E_SERVER_ERROR:
+    return &authError{"server_error", client}
+  case E_TEMPORARILY_UNAVAILABLE:
+    return &authError{"temporarily_unavailable", client}
+  case E_UNSUPPORTED_GRANT_TYPE:
+    return &authError{"unsupported_grant_type", client}
+  case E_INVALID_GRANT:
+    return &authError{"invalid_grant", client}
+  case E_INVALID_CLIENT:
+    return &authError{"invalid_client", client}
   }
 
   return &authError{"unknown_error", client}
