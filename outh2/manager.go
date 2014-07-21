@@ -11,10 +11,10 @@ const (
 )
 
 type managers struct {
-  Client       ClientManager
-  Code         CodeManager
-  Token        TokenManager
-  RefreshToken RefreshTokenManager
+  Client       ClientStore
+  Code         TokenStore
+  Token        TokenStore
+  RefreshToken TokenStore
 }
 
 type OauthManager struct {
@@ -52,7 +52,7 @@ func validateUri(base, uri string) bool {
 }
 
 func (m *OauthManager) GenerateCode(w http.ResponseWriter,
-  r *http.Request) (*Code, error) {
+  r *http.Request) (*Token, error) {
   err := r.ParseForm()
   if err != nil {
     return nil, NewAuthError(nil, E_INVALID_REQUEST, err.Error())
@@ -82,7 +82,7 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
   }
 
   scope := r.Form.Get("scope")
-  code := NewCode(client.Id, scope, redirectUri, m.CodeLife)
+  code := NewToken(client.Id, scope, redirectUri, m.CodeLife)
   _, err = m.Managers.Code.Insert(code)
   if err != nil {
     return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
@@ -90,7 +90,7 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
   return code, nil
 }
 
-func (m *OauthManager) RedirectUrlWithCode(code *Code) (*url.URL, error) {
+func (m *OauthManager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
   uri, err := url.Parse(code.RedirectUri)
   if err != nil {
     client, _ := m.Managers.Client.Read(code.ClientId)

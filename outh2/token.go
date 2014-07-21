@@ -6,7 +6,7 @@ import (
   "time"
 )
 
-type BasicTokenData struct {
+type Token struct {
   Value       string
   ClientId    string
   Scope       string
@@ -22,9 +22,9 @@ func generateToken() string {
   return base64.StdEncoding.EncodeToString([]byte(token))
 }
 
-func NewBasicTokenData(clientId, scope, uri string,
-  life int64) *BasicTokenData {
-  return &BasicTokenData{
+func NewToken(clientId, scope, uri string,
+  life int64) *Token {
+  return &Token{
     Value:       generateToken(),
     ClientId:    clientId,
     Scope:       scope,
@@ -32,28 +32,4 @@ func NewBasicTokenData(clientId, scope, uri string,
     CreatedAt:   time.Now().Unix(),
     Life:        life,
     UserData:    make(map[string]interface{})}
-}
-
-type Code struct {
-  *BasicTokenData
-}
-
-type Token struct {
-  *BasicTokenData
-}
-
-type RefreshToken struct {
-  *BasicTokenData
-}
-
-func NewCode(clientId, scope, uri string, life int64) *Code {
-  return &Code{NewBasicTokenData(clientId, scope, uri, life)}
-}
-
-func NewToken(clientId, scope, uri string, life int64) *Token {
-  return &Token{NewBasicTokenData(clientId, scope, uri, life)}
-}
-
-func NewRefreshToken(clientId, scope, uri string, life int64) *RefreshToken {
-  return &RefreshToken{NewBasicTokenData(clientId, scope, uri, life)}
 }
