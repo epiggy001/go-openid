@@ -7,14 +7,14 @@ import (
 type Client struct {
   Id          string
   Secret      string
-  BaseUrl     string
+  BaseUri     string
   Description string
 }
 
 func (c *Client) String() string {
-  return fmt.Sprintf("client %s for %s", c.Id, c.BaseUrl)
+  return fmt.Sprintf("client %s for %s", c.Id, c.BaseUri)
 }
 
-func NewClient(id, secret, url, des string) *Client {
-  return &Client{id, secret, url, des}
+func NewClient(id, secret, uri, des string) *Client {
+  return &Client{id, secret, uri, des}
 }

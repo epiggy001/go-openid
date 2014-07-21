@@ -2,35 +2,12 @@ package oauth2
 
 import (
   "net/http"
+  "net/url"
 )
 
 const (
   authorizationCode = "authorization_code"
 )
-
-type ClientManager interface {
-  Insert(c *Client) (string, error)
-  Remove(id string) error
-  Read(id string) (*Client, error)
-}
-
-type TokenManager interface {
-  Insert(t *Token) (string, error)
-  Remove(id string) error
-  Read(id string) (*Token, error)
-}
-
-type CodeManager interface {
-  Insert(c *Code) (string, error)
-  Remove(id string) error
-  Read(id string) (*Code, error)
-}
-
-type RefreshTokenManager interface {
-  Insert(t *RefreshToken) (string, error)
-  Remove(id string) error
-  Read(id string) (*RefreshToken, error)
-}
 
 type managers struct {
   Client       ClientManager
@@ -40,9 +17,9 @@ type managers struct {
 }
 
 type OauthManager struct {
-  CodeLife         int32
-  TokenLife        int32
-  RefreshTokenLife int32
+  CodeLife         int64
+  TokenLife        int64
+  RefreshTokenLife int64
   AllowGetMethod   bool
 
   Managers *managers
@@ -54,39 +31,64 @@ func (m *OauthManager) getClient(r *http.Request) (*Client, error) {
   clientId := r.Form.Get("client_id")
   client, err := m.Managers.Client.Read(clientId)
   if err != nil {
-    return nil, NewAuthError(nil, E_INVALID_CLIENT, err.Error())
+    return nil, NewAuthError(nil, E_SERVER_ERROR, err.Error())
   }
 
   if client == nil {
-    return nil, NewAuthError(nil, E_INVALID_CLIENT, "Failt to read client")
+    return nil, NewAuthError(nil, E_UNAUTHORIZED_CLIENT, "Failt to read client")
   }
 
   if !m.ClientAuthFunc(r, client) {
-    return nil, NewAuthError(nil, E_INVALID_CLIENT, "Failt to validate client")
+    return nil, NewAuthError(client, E_UNAUTHORIZED_CLIENT, "Failt to validate client")
   }
 
   if (r.Method == "GET" && !m.AllowGetMethod) || (r.Method != "POST") {
-    return nil, NewAuthError(nil, E_INVALID_REQUEST, "Invalid request method")
+    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid request method")
   }
   return client, nil
 }
 
-func (m *OauthManager) HandleAuthRequest(w http.ResponseWriter,
-  r *http.Request) error {
+func validateUri(base, uri string) bool {
+  return true
+}
+
+func (m *OauthManager) GenerateCode(w http.ResponseWriter,
+  r *http.Request) (*Code, error) {
   err := r.ParseForm()
   if err != nil {
-    return NewAuthError(nil, E_INVALID_REQUEST, err.Error())
+    return nil, NewAuthError(nil, E_INVALID_REQUEST, err.Error())
   }
 
-  _, err = m.getClient(r)
+  client, err := m.getClient(r)
   if err != nil {
-    return err
+    return nil, err
   }
 
   grantType := r.Form.Get("grant_type")
   if grantType != authorizationCode {
-    return NewAuthError(nil, E_INVALID_REQUEST, "Fail to parse request")
+    return nil, NewAuthError(client, E_INVALID_REQUEST,
+      "Only grant type is supported now")
   }
 
-  return nil
+  redirectUri := r.Form.Get("redirect_uri")
+  if redirectUri == "" {
+    redirectUri = client.BaseUri
+  } else if !validateUri(client.BaseUri, redirectUri) {
+    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
+  }
+
+  scope := r.Form.Get("scope")
+  code := NewCode(client.Id, scope, redirectUri, m.CodeLife)
+  return code, nil
+}
+
+func (m *OauthManager) RedirectUrlWithCode(code *Code) (*url.URL, error) {
+  uri, err := url.Parse(code.RedirectUri)
+  if err != nil {
+    client, _ := m.Managers.Client.Read(code.ClientId)
+    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
+  }
+  uri.Query().Set("scope", code.Scope)
+  uri.Query().Set("code", code.Value)
+  return uri, nil
 }
