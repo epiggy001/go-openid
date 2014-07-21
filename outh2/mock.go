@@ -2,6 +2,7 @@ package oauth2
 
 import (
   "sync"
+  "time"
 )
 
 type MockStorage struct {
@@ -56,4 +57,33 @@ func (m *MockClientStore) Remove(id string) error {
 func (m *MockClientStore) Read(id string) (*Client, error) {
   c, _ := m.store.Read(id).(*Client)
   return c, nil
+}
+
+type MockTokenStore struct {
+  store *MockStorage
+}
+
+func NewMockTokenStore() *MockTokenStore {
+  return &MockTokenStore{NewMockStorage()}
+}
+
+func (m *MockTokenStore) Insert(t *Token) (string, error) {
+  m.store.Insert(t.Value, t)
+  return t.Value, nil
+}
+
+func (m *MockTokenStore) Remove(id string) error {
+  m.store.Remove(id)
+  return nil
+}
+
+func (m *MockTokenStore) Read(id string) (*Token, error) {
+  t, ok := m.store.Read(id).(*Token)
+  if !ok {
+    return nil, nil
+  }
+  if t.CreatedAt+t.Life < time.Now().Unix() {
+    return nil, nil
+  }
+  return t, nil
 }
