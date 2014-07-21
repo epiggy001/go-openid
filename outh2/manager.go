@@ -36,15 +36,13 @@ func (m *OauthManager) getClient(r *http.Request) (*Client, error) {
   }
 
   if client == nil {
-    return nil, NewAuthError(nil, E_UNAUTHORIZED_CLIENT, "Failt to read client")
+    return nil, NewAuthError(nil, E_UNAUTHORIZED_CLIENT,
+      "Failt to read client")
   }
 
   if !m.ClientAuthFunc(r, client) {
-    return nil, NewAuthError(client, E_UNAUTHORIZED_CLIENT, "Failt to validate client")
-  }
-
-  if (r.Method == "GET" && !m.AllowGetMethod) || (r.Method != "POST") {
-    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid request method")
+    return nil, NewAuthError(client, E_UNAUTHORIZED_CLIENT,
+      "Failt to validate client")
   }
   return client, nil
 }
@@ -63,6 +61,11 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
   client, err := m.getClient(r)
   if err != nil {
     return nil, err
+  }
+
+  if (r.Method == "GET" && !m.AllowGetMethod) || (r.Method != "POST") {
+    return nil, NewAuthError(client, E_INVALID_REQUEST,
+      "Invalid request method")
   }
 
   responseType := r.Form.Get("response_type")
@@ -110,15 +113,20 @@ func (m *OauthManager) GenerateToken(w http.ResponseWriter,
     return nil, err
   }
 
+  if (r.Method == "GET" && !m.AllowGetMethod) || (r.Method != "POST") {
+    return nil, NewAuthError(client, E_INVALID_REQUEST,
+      "Invalid request method")
+  }
+
   responseType := r.Form.Get("grant_type")
   if responseType != authorizationCode {
-    return nil, NewAuthError(client, E_UNSUPPORTED_GRANT_TYPE,
+    return nil, NewAuthError(client, E_INVALID_REQUEST,
       "Only authorization code grant type is supported now")
   }
 
   code, err := m.Managers.Code.Read(r.Form.Get("code"))
   if err != nil {
-    return nil, NewAuthError(client, E_INVALID_REQUEST, err.Error())
+    return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
   }
   if code == nil {
     return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid code")

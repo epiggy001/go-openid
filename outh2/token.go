@@ -34,10 +34,6 @@ func NewBasicTokenData(clientId, scope, uri string,
     UserData:    make(map[string]interface{})}
 }
 
-func (t *BasicTokenData) IsExpire() bool {
-  return time.Now().Unix() > t.CreatedAt+t.Life
-}
-
 type Code struct {
   *BasicTokenData
 }

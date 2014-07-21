@@ -12,9 +12,6 @@ const (
   E_INVALID_SCOPE
   E_SERVER_ERROR
   E_TEMPORARILY_UNAVAILABLE
-  E_UNSUPPORTED_GRANT_TYPE
-  E_INVALID_GRANT
-  E_INVALID_CLIENT
 )
 
 type authError struct {
@@ -54,12 +51,6 @@ func NewAuthError(client *Client, n int, detail string) *authError {
     return &authError{"server_error", client, detail}
   case E_TEMPORARILY_UNAVAILABLE:
     return &authError{"temporarily_unavailable", client, detail}
-  case E_UNSUPPORTED_GRANT_TYPE:
-    return &authError{"unsupported_grant_type", client, detail}
-  case E_INVALID_GRANT:
-    return &authError{"invalid_grant", client, detail}
-  case E_INVALID_CLIENT:
-    return &authError{"invalid_client", client, detail}
   }
 
   return &authError{"unknown_error", client, detail}
