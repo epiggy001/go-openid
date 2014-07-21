@@ -64,10 +64,10 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
     return nil, err
   }
 
-  grantType := r.Form.Get("grant_type")
-  if grantType != authorizationCode {
+  responseType := r.Form.Get("response_type")
+  if responseType != "code" {
     return nil, NewAuthError(client, E_INVALID_REQUEST,
-      "Only grant type is supported now")
+      "Only code response type is supported now")
   }
 
   redirectUri := r.Form.Get("redirect_uri")
@@ -91,4 +91,9 @@ func (m *OauthManager) RedirectUrlWithCode(code *Code) (*url.URL, error) {
   uri.Query().Set("scope", code.Scope)
   uri.Query().Set("code", code.Value)
   return uri, nil
+}
+
+func (m *OauthManager) GenerateToken(w http.ResponseWriter,
+  r *http.Request) (*Token, error) {
+  return nil, nil
 }
