@@ -3,6 +3,7 @@ package oauth2
 import (
   "net/http"
   "net/url"
+  "strconv"
 )
 
 const (
@@ -66,7 +67,7 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
 
   responseType := r.Form.Get("response_type")
   if responseType != "code" {
-    return nil, NewAuthError(client, E_INVALID_REQUEST,
+    return nil, NewAuthError(client, E_UNSUPPORTED_RESPONSE_TYPE,
       "Only code response type is supported now")
   }
 
@@ -79,6 +80,10 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
 
   scope := r.Form.Get("scope")
   code := NewCode(client.Id, scope, redirectUri, m.CodeLife)
+  _, err = m.Managers.Code.Insert(code)
+  if err != nil {
+    return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
+  }
   return code, nil
 }
 
@@ -95,5 +100,57 @@ func (m *OauthManager) RedirectUrlWithCode(code *Code) (*url.URL, error) {
 
 func (m *OauthManager) GenerateToken(w http.ResponseWriter,
   r *http.Request) (*Token, error) {
-  return nil, nil
+  err := r.ParseForm()
+  if err != nil {
+    return nil, NewAuthError(nil, E_INVALID_REQUEST, err.Error())
+  }
+
+  client, err := m.getClient(r)
+  if err != nil {
+    return nil, err
+  }
+
+  responseType := r.Form.Get("grant_type")
+  if responseType != authorizationCode {
+    return nil, NewAuthError(client, E_UNSUPPORTED_GRANT_TYPE,
+      "Only authorization code grant type is supported now")
+  }
+
+  code, err := m.Managers.Code.Read(r.Form.Get("code"))
+  if err != nil {
+    return nil, NewAuthError(client, E_INVALID_REQUEST, err.Error())
+  }
+  if code == nil {
+    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid code")
+  }
+
+  if code.ClientId != client.Id {
+    return nil, NewAuthError(client, E_INVALID_REQUEST, "Client is mismatch")
+  }
+
+  redirectUri := r.Form.Get("redirect_uri")
+  if redirectUri == "" {
+    redirectUri = client.BaseUri
+  } else if !validateUri(client.BaseUri, redirectUri) {
+    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
+  }
+
+  token := NewToken(client.Id, code.Scope, redirectUri, m.TokenLife)
+  _, err = m.Managers.Token.Insert(token)
+  if err != nil {
+    return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
+  }
+  return token, nil
+}
+
+func (m *OauthManager) RedirectUrlWithToken(token *Token) (*url.URL, error) {
+  uri, err := url.Parse(token.RedirectUri)
+  if err != nil {
+    client, _ := m.Managers.Client.Read(token.ClientId)
+    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
+  }
+  uri.Query().Set("scope", token.Scope)
+  uri.Query().Set("access_token", token.Scope)
+  uri.Query().Set("expires_in", strconv.FormatInt(token.Life, 10))
+  return uri, nil
 }
