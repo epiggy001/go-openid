@@ -3,7 +3,7 @@ package oauth2
 import (
   "net/http"
   "net/url"
-  "strconv"
+  "encoding/json"
 )
 
 const (
@@ -96,8 +96,10 @@ func (m *OauthManager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
     client, _ := m.Storage.Client.Read(code.ClientId)
     return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
   }
-  uri.Query().Set("scope", code.Scope)
-  uri.Query().Set("code", code.Value)
+  q := uri.Query()
+  q.Set("scope", code.Scope)
+  q.Set("code", code.Value)
+  uri.RawQuery = q.Encode()
   return uri, nil
 }
 
@@ -151,14 +153,19 @@ func (m *OauthManager) GenerateToken(w http.ResponseWriter,
   return token, nil
 }
 
-func (m *OauthManager) RedirectUrlWithToken(token *Token) (*url.URL, error) {
-  uri, err := url.Parse(token.RedirectUri)
+func (m *OauthManager) ResponseWithToken(w http.ResponseWriter,
+  token *Token) error {
+  s := make(map[string]interface{})
+  s["scope"] = token.Scope
+  s["access_token"] = token.Value
+  s["expires_in"] = token.Life
+  o, err := json.Marshal(s)
   if err != nil {
-    client, _ := m.Storage.Client.Read(token.ClientId)
-    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
+    return err
   }
-  uri.Query().Set("scope", token.Scope)
-  uri.Query().Set("access_token", token.Scope)
-  uri.Query().Set("expires_in", strconv.FormatInt(token.Life, 10))
-  return uri, nil
+  w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+  w.Header().Set("Cache-Control", "no-store")
+  w.Header().Set("Pragma", "no-cache")
+  w.Write(o)
+  return nil
 }
