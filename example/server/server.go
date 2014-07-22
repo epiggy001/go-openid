@@ -8,7 +8,7 @@ import (
   "encoding/json"
   "github.com/dgrijalva/jwt-go"
   "net/http"
-  "oauth2"
+  "github.com/epiggy001/go-openid/oauth2"
   "time"
 )
 
