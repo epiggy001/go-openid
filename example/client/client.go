@@ -8,6 +8,7 @@ import (
   "code.google.com/p/goauth2/oauth"
   "fmt"
   "github.com/dgrijalva/jwt-go"
+  "io"
   "net/http"
 )
 
@@ -70,7 +71,16 @@ func main() {
         token, _ := jwt.Parse(tokenString, func(token *jwt.Token) ([]byte, error) {
           return []byte(myKey), nil
         })
-        w.Write([]byte(fmt.Sprintf("JWT: %v<br/>\n", token)))
+        // TODO: Add jwt checking
+        if token.Valid {
+          resp, err := ctransport.Client().Get("http://localhost:14001/userinfo?token=" + jr.AccessToken)
+          if err != nil {
+            fmt.Println(err)
+            return
+          }
+          io.Copy(w, resp.Body)
+          return
+        }
       } else {
         w.Write([]byte("No token"))
       }

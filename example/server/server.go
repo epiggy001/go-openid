@@ -5,6 +5,7 @@ package main
 // http://localhost:14000/app
 
 import (
+  "encoding/json"
   "github.com/dgrijalva/jwt-go"
   "net/http"
   "oauth2"
@@ -60,6 +61,19 @@ func main() {
     ClientAuthFunc: func(r *http.Request, c *oauth2.Client) bool {
       return true
     }}
+
+  // UserInfo endpoint
+  http.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
+    r.ParseForm()
+    tokenString := r.Form.Get("token")
+    token, _ := au.Storage.Token.Read(tokenString)
+    if token != nil {
+      info := make(map[string]interface{})
+      info["username"] = token.UserData["username"]
+      o, _ := json.Marshal(info)
+      w.Write(o)
+    }
+  })
 
   // Authorization code endpoint
   http.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
