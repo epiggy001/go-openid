@@ -10,7 +10,7 @@ const (
   authorizationCode = "authorization_code"
 )
 
-type managers struct {
+type Storage struct {
   Client       ClientStore
   Code         TokenStore
   Token        TokenStore
@@ -23,14 +23,14 @@ type OauthManager struct {
   RefreshTokenLife int64
   AllowGetMethod   bool
 
-  Managers *managers
+  Storage *Storage
 
   ClientAuthFunc func(r *http.Request, c *Client) bool
 }
 
 func (m *OauthManager) getClient(r *http.Request) (*Client, error) {
   clientId := r.Form.Get("client_id")
-  client, err := m.Managers.Client.Read(clientId)
+  client, err := m.Storage.Client.Read(clientId)
   if err != nil {
     return nil, NewAuthError(nil, E_SERVER_ERROR, err.Error())
   }
@@ -83,7 +83,7 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
 
   scope := r.Form.Get("scope")
   code := NewToken(client.Id, scope, redirectUri, m.CodeLife)
-  _, err = m.Managers.Code.Insert(code)
+  _, err = m.Storage.Code.Insert(code)
   if err != nil {
     return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
   }
@@ -93,7 +93,7 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
 func (m *OauthManager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
   uri, err := url.Parse(code.RedirectUri)
   if err != nil {
-    client, _ := m.Managers.Client.Read(code.ClientId)
+    client, _ := m.Storage.Client.Read(code.ClientId)
     return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
   }
   uri.Query().Set("scope", code.Scope)
@@ -124,7 +124,7 @@ func (m *OauthManager) GenerateToken(w http.ResponseWriter,
       "Only authorization code grant type is supported now")
   }
 
-  code, err := m.Managers.Code.Read(r.Form.Get("code"))
+  code, err := m.Storage.Code.Read(r.Form.Get("code"))
   if err != nil {
     return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
   }
@@ -144,7 +144,7 @@ func (m *OauthManager) GenerateToken(w http.ResponseWriter,
   }
 
   token := NewToken(client.Id, code.Scope, redirectUri, m.TokenLife)
-  _, err = m.Managers.Token.Insert(token)
+  _, err = m.Storage.Token.Insert(token)
   if err != nil {
     return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
   }
@@ -154,7 +154,7 @@ func (m *OauthManager) GenerateToken(w http.ResponseWriter,
 func (m *OauthManager) RedirectUrlWithToken(token *Token) (*url.URL, error) {
   uri, err := url.Parse(token.RedirectUri)
   if err != nil {
-    client, _ := m.Managers.Client.Read(token.ClientId)
+    client, _ := m.Storage.Client.Read(token.ClientId)
     return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
   }
   uri.Query().Set("scope", token.Scope)
