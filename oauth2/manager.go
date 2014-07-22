@@ -1,9 +1,9 @@
 package oauth2
 
 import (
+  "encoding/json"
   "net/http"
   "net/url"
-  "encoding/json"
 )
 
 const (
@@ -51,8 +51,7 @@ func validateUri(base, uri string) bool {
   return true
 }
 
-func (m *OauthManager) GenerateCode(w http.ResponseWriter,
-  r *http.Request) (*Token, error) {
+func (m *OauthManager) GenerateCode(r *http.Request) (*Token, error) {
   err := r.ParseForm()
   if err != nil {
     return nil, NewAuthError(nil, E_INVALID_REQUEST, err.Error())
@@ -83,11 +82,16 @@ func (m *OauthManager) GenerateCode(w http.ResponseWriter,
 
   scope := r.Form.Get("scope")
   code := NewToken(client.Id, scope, redirectUri, m.CodeLife)
-  _, err = m.Storage.Code.Insert(code)
-  if err != nil {
-    return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
-  }
   return code, nil
+}
+
+func (m *OauthManager) SaveCode(code *Token) error {
+  _, err := m.Storage.Code.Insert(code)
+  if err != nil {
+    client, _ := m.Storage.Client.Read(code.ClientId)
+    return NewAuthError(client, E_SERVER_ERROR, err.Error())
+  }
+  return nil
 }
 
 func (m *OauthManager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
@@ -103,62 +107,69 @@ func (m *OauthManager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
   return uri, nil
 }
 
-func (m *OauthManager) GenerateToken(w http.ResponseWriter,
-  r *http.Request) (*Token, error) {
+func (m *OauthManager) GenerateToken(r *http.Request) (*Token, *Token, error) {
   err := r.ParseForm()
   if err != nil {
-    return nil, NewAuthError(nil, E_INVALID_REQUEST, err.Error())
+    return nil, nil, NewAuthError(nil, E_INVALID_REQUEST, err.Error())
   }
 
   client, err := m.getClient(r)
   if err != nil {
-    return nil, err
+    return nil, nil, err
   }
 
   if (r.Method == "GET" && !m.AllowGetMethod) || (r.Method != "POST") {
-    return nil, NewAuthError(client, E_INVALID_REQUEST,
+    return nil, nil, NewAuthError(client, E_INVALID_REQUEST,
       "Invalid request method")
   }
 
   responseType := r.Form.Get("grant_type")
   if responseType != authorizationCode {
-    return nil, NewAuthError(client, E_INVALID_REQUEST,
+    return nil, nil, NewAuthError(client, E_INVALID_REQUEST,
       "Only authorization code grant type is supported now")
   }
 
   code, err := m.Storage.Code.Read(r.Form.Get("code"))
   if err != nil {
-    return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
+    return nil, nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
   }
   if code == nil {
-    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid code")
+    return nil, nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid code")
   }
 
   if code.ClientId != client.Id {
-    return nil, NewAuthError(client, E_INVALID_REQUEST, "Client is mismatch")
+    return nil, nil, NewAuthError(client, E_INVALID_REQUEST, "Client is mismatch")
   }
 
   redirectUri := r.Form.Get("redirect_uri")
   if redirectUri == "" {
     redirectUri = client.BaseUri
   } else if !validateUri(client.BaseUri, redirectUri) {
-    return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
+    return nil, nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
   }
 
   token := NewToken(client.Id, code.Scope, redirectUri, m.TokenLife)
-  _, err = m.Storage.Token.Insert(token)
+  return code, token, nil
+}
+
+func (m *OauthManager) SaveToken(token *Token) error {
+  _, err := m.Storage.Token.Insert(token)
   if err != nil {
-    return nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
+    client, _ := m.Storage.Client.Read(token.ClientId)
+    return NewAuthError(client, E_SERVER_ERROR, err.Error())
   }
-  return token, nil
+  return nil
 }
 
 func (m *OauthManager) ResponseWithToken(w http.ResponseWriter,
-  token *Token) error {
+  token *Token, userData map[string]interface{}) error {
   s := make(map[string]interface{})
   s["scope"] = token.Scope
   s["access_token"] = token.Value
   s["expires_in"] = token.Life
+  for k, v := range userData {
+    s[k] = v
+  }
   o, err := json.Marshal(s)
   if err != nil {
     return err
