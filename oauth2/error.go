@@ -5,52 +5,57 @@ import (
 )
 
 const (
-  E_INVALID_REQUEST int = iota + 1
+  E_INVALID_REQUEST int = iota
   E_UNAUTHORIZED_CLIENT
   E_ACCESS_DENIED
   E_UNSUPPORTED_RESPONSE_TYPE
-  E_INVALID_SCOPE
   E_SERVER_ERROR
   E_TEMPORARILY_UNAVAILABLE
+  E_INVALID_CLIENT
+  E_INVALID_GRANT
+  E_INVALID_SCOPE
+  E_UNSUPPORTED_GRANT_TYPE
 )
 
-type authError struct {
-  err    string
+var (
+  errMap = [...]string{
+    "invalid_request",
+    "unauthorized_client",
+    "access_denied",
+    "unsupported_response_type",
+    "server_error",
+    "temporarily_unavailable",
+    "invalid_client",
+    "invalid_grant",
+    "invalid_scope",
+    "unsupported_grant_type",
+  }
+)
+
+type AuthError struct {
+  code   int
   client *Client
   detail string
 }
 
-func (ae *authError) ErrorString() string {
-  return ae.err
+func (ae *AuthError) Code() string {
+  return ae.Code()
+}
+
+func (ae *AuthError) ErrorString() string {
+  return errMap[ae.code]
 }
 
 // Implements the error api
-func (ae *authError) Error() string {
+func (ae *AuthError) Error() string {
   if ae.client != nil {
-    return fmt.Sprintf("%s has error: %s. Detail info: %s", ae.client, ae.err,
-      ae.detail)
+    return fmt.Sprintf("%s has error: %s. Detail info: %s", ae.client,
+      ae.ErrorString(), ae.detail)
   }
 
-  return fmt.Sprintf("Error: %s. Detail info: %s", ae.err, ae.detail)
+  return fmt.Sprintf("Error: %s. Detail info: %s", ae.ErrorString(), ae.detail)
 }
 
-func NewAuthError(client *Client, n int, detail string) *authError {
-  switch n {
-  case E_INVALID_REQUEST:
-    return &authError{"invalid_request", client, detail}
-  case E_UNAUTHORIZED_CLIENT:
-    return &authError{"unauthorized_client", client, detail}
-  case E_ACCESS_DENIED:
-    return &authError{"access_denied", client, detail}
-  case E_UNSUPPORTED_RESPONSE_TYPE:
-    return &authError{"unsupported_response_type", client, detail}
-  case E_INVALID_SCOPE:
-    return &authError{"invalid_scope", client, detail}
-  case E_SERVER_ERROR:
-    return &authError{"server_error", client, detail}
-  case E_TEMPORARILY_UNAVAILABLE:
-    return &authError{"temporarily_unavailable", client, detail}
-  }
-
-  return &authError{"unknown_error", client, detail}
+func NewAuthError(client *Client, code int, detail string) *AuthError {
+  return &AuthError{code, client, detail}
 }

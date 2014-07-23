@@ -125,7 +125,7 @@ func (m *Manager) GenerateToken(r *http.Request) (*Token, *Token, error) {
 
   responseType := r.Form.Get("grant_type")
   if responseType != authorizationCode {
-    return nil, nil, NewAuthError(client, E_INVALID_REQUEST,
+    return nil, nil, NewAuthError(client, E_UNSUPPORTED_GRANT_TYPE,
       "Only authorization code grant type is supported now")
   }
 
@@ -134,11 +134,11 @@ func (m *Manager) GenerateToken(r *http.Request) (*Token, *Token, error) {
     return nil, nil, NewAuthError(client, E_SERVER_ERROR, err.Error())
   }
   if code == nil {
-    return nil, nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid code")
+    return nil, nil, NewAuthError(client, E_INVALID_GRANT, "Invalid code")
   }
 
   if code.ClientId != client.Id {
-    return nil, nil, NewAuthError(client, E_INVALID_REQUEST, "Client is mismatch")
+    return nil, nil, NewAuthError(client, E_INVALID_CLIENT, "Client is mismatch")
   }
 
   redirectUri := r.Form.Get("redirect_uri")
@@ -174,6 +174,28 @@ func (m *Manager) ResponseWithToken(w http.ResponseWriter,
   if err != nil {
     return err
   }
+  w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+  w.Header().Set("Cache-Control", "no-store")
+  w.Header().Set("Pragma", "no-cache")
+  w.Write(o)
+  return nil
+}
+
+func (m *Manager) ResponseWithError(w http.ResponseWriter, err error) error {
+  oerr, ok := err.(*AuthError)
+  var errString string
+  if ok {
+    errString = oerr.ErrorString()
+  } else {
+    errString = err.Error()
+  }
+  s := make(map[string]interface{})
+  s["error"] = errString
+  o, err := json.Marshal(s)
+  if err != nil {
+    return err
+  }
+  w.WriteHeader(http.StatusBadRequest)
   w.Header().Set("Content-Type", "application/json;charset=UTF-8")
   w.Header().Set("Cache-Control", "no-store")
   w.Header().Set("Pragma", "no-cache")
