@@ -4,6 +4,7 @@ import (
   "encoding/json"
   "net/http"
   "net/url"
+  "strings"
 )
 
 const (
@@ -48,7 +49,34 @@ func (m *Manager) getClient(r *http.Request) (*Client, error) {
 }
 
 func validateUri(base, uri string) bool {
-  return true
+  if base == "" || uri == "" {
+    return false
+  }
+
+  // parse base url
+  baseUri, err := url.Parse(base)
+  if err != nil {
+    return false
+  }
+
+  redirectUri, err := url.Parse(uri)
+  if err != nil {
+    return false
+  }
+
+  // must not have fragment
+  if baseUri.Fragment != "" || redirectUri.Fragment != "" {
+    return false
+  }
+
+  // check if urls match
+  if baseUri.Scheme == redirectUri.Scheme && baseUri.Host == redirectUri.Host &&
+    len(redirectUri.Path) >= len(baseUri.Path) &&
+    strings.HasPrefix(redirectUri.Path, baseUri.Path) {
+    return true
+  }
+
+  return false
 }
 
 func (m *Manager) GenerateCode(r *http.Request) (*Token, error) {
