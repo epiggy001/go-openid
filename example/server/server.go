@@ -52,7 +52,7 @@ func main() {
     oauth2.NewMockTokenStore(), oauth2.NewMockTokenStore(),
     oauth2.NewMockTokenStore()}
 
-  au := oauth2.OauthManager{
+  au := oauth2.Manager{
     CodeLife:       120,
     TokenLife:      120,
     AllowGetMethod: true,

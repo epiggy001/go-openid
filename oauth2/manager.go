@@ -17,7 +17,7 @@ type Storage struct {
   RefreshToken TokenStore
 }
 
-type OauthManager struct {
+type Manager struct {
   CodeLife         int64
   TokenLife        int64
   RefreshTokenLife int64
@@ -28,7 +28,7 @@ type OauthManager struct {
   ClientAuthFunc func(r *http.Request, c *Client) bool
 }
 
-func (m *OauthManager) getClient(r *http.Request) (*Client, error) {
+func (m *Manager) getClient(r *http.Request) (*Client, error) {
   clientId := r.Form.Get("client_id")
   client, err := m.Storage.Client.Read(clientId)
   if err != nil {
@@ -51,7 +51,7 @@ func validateUri(base, uri string) bool {
   return true
 }
 
-func (m *OauthManager) GenerateCode(r *http.Request) (*Token, error) {
+func (m *Manager) GenerateCode(r *http.Request) (*Token, error) {
   err := r.ParseForm()
   if err != nil {
     return nil, NewAuthError(nil, E_INVALID_REQUEST, err.Error())
@@ -85,7 +85,7 @@ func (m *OauthManager) GenerateCode(r *http.Request) (*Token, error) {
   return code, nil
 }
 
-func (m *OauthManager) SaveCode(code *Token) error {
+func (m *Manager) SaveCode(code *Token) error {
   _, err := m.Storage.Code.Insert(code)
   if err != nil {
     client, _ := m.Storage.Client.Read(code.ClientId)
@@ -94,7 +94,7 @@ func (m *OauthManager) SaveCode(code *Token) error {
   return nil
 }
 
-func (m *OauthManager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
+func (m *Manager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
   uri, err := url.Parse(code.RedirectUri)
   if err != nil {
     client, _ := m.Storage.Client.Read(code.ClientId)
@@ -107,7 +107,7 @@ func (m *OauthManager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
   return uri, nil
 }
 
-func (m *OauthManager) GenerateToken(r *http.Request) (*Token, *Token, error) {
+func (m *Manager) GenerateToken(r *http.Request) (*Token, *Token, error) {
   err := r.ParseForm()
   if err != nil {
     return nil, nil, NewAuthError(nil, E_INVALID_REQUEST, err.Error())
@@ -152,7 +152,7 @@ func (m *OauthManager) GenerateToken(r *http.Request) (*Token, *Token, error) {
   return code, token, nil
 }
 
-func (m *OauthManager) SaveToken(token *Token) error {
+func (m *Manager) SaveToken(token *Token) error {
   _, err := m.Storage.Token.Insert(token)
   if err != nil {
     client, _ := m.Storage.Client.Read(token.ClientId)
@@ -161,7 +161,7 @@ func (m *OauthManager) SaveToken(token *Token) error {
   return nil
 }
 
-func (m *OauthManager) ResponseWithToken(w http.ResponseWriter,
+func (m *Manager) ResponseWithToken(w http.ResponseWriter,
   token *Token, userData map[string]interface{}) error {
   s := make(map[string]interface{})
   s["scope"] = token.Scope

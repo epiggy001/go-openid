@@ -26,7 +26,6 @@ func (ae *authError) ErrorString() string {
 
 // Implements the error api
 func (ae *authError) Error() string {
-  // TODO: Add client info
   if ae.client != nil {
     return fmt.Sprintf("%s has error: %s. Detail info: %s", ae.client, ae.err,
       ae.detail)
