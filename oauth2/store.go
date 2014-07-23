@@ -5,28 +5,40 @@ import (
   "time"
 )
 
-type MockStorage struct {
+type ClientStore interface {
+  Insert(c *Client) (string, error)
+  Remove(id string) error
+  Read(id string) (*Client, error)
+}
+
+type TokenStore interface {
+  Insert(t *Token) (string, error)
+  Remove(id string) error
+  Read(id string) (*Token, error)
+}
+
+type MemoryStore struct {
   store  map[string]interface{}
   locker *sync.RWMutex
 }
 
-func NewMockStorage() *MockStorage {
-  return &MockStorage{make(map[string]interface{}), new(sync.RWMutex)}
+func NewMemoryStore() *MemoryStore {
+  return &MemoryStore{make(map[string]interface{}), new(sync.RWMutex)}
 }
 
-func (m *MockStorage) Insert(id string, data interface{}) {
+func (m *MemoryStore) Insert(id string, data interface{}) {
   m.locker.Lock()
   defer m.locker.Unlock()
   m.store[id] = data
 }
 
-func (m *MockStorage) Remove(id string) {
+func (m *MemoryStore) Remove(id string) {
   m.locker.Lock()
   defer m.locker.Unlock()
   delete(m.store, id)
 }
 
-func (m *MockStorage) Read(id string) interface{} {
+func (m *MemoryStore) Read(id string) interface{} {
   m.locker.RLock()
   defer m.locker.RUnlock()
   data, ok := m.store[id]
@@ -37,11 +49,11 @@ func (m *MockStorage) Read(id string) interface{} {
 }
 
 type MockClientStore struct {
-  store *MockStorage
+  store *MemoryStore
 }
 
 func NewMockClientStore() *MockClientStore {
-  return &MockClientStore{NewMockStorage()}
+  return &MockClientStore{NewMemoryStore()}
 }
 
 func (m *MockClientStore) Insert(c *Client) (string, error) {
@@ -59,25 +71,25 @@ func (m *MockClientStore) Read(id string) (*Client, error) {
   return c, nil
 }
 
-type MockTokenStore struct {
-  store *MockStorage
+type MemoryTokenStore struct {
+  store *MemoryStore
 }
 
-func NewMockTokenStore() *MockTokenStore {
-  return &MockTokenStore{NewMockStorage()}
+func NewTokenStore() *MemoryTokenStore {
+  return &MemoryTokenStore{NewMemoryStore()}
 }
 
-func (m *MockTokenStore) Insert(t *Token) (string, error) {
+func (m *MemoryTokenStore) Insert(t *Token) (string, error) {
   m.store.Insert(t.Value, t)
   return t.Value, nil
 }
 
-func (m *MockTokenStore) Remove(id string) error {
+func (m *MemoryTokenStore) Remove(id string) error {
   m.store.Remove(id)
   return nil
 }
 
-func (m *MockTokenStore) Read(id string) (*Token, error) {
+func (m *MemoryTokenStore) Read(id string) (*Token, error) {
   t, ok := m.store.Read(id).(*Token)
   if !ok {
     return nil, nil

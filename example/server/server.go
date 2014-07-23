@@ -49,8 +49,8 @@ func main() {
     "http://localhost:14000/info", "")
   clientStore.Insert(c)
   storage := &oauth2.Storage{clientStore,
-    oauth2.NewMockTokenStore(), oauth2.NewMockTokenStore(),
-    oauth2.NewMockTokenStore()}
+    oauth2.NewMemoryTokenStore(), oauth2.NewMemoryTokenStore(),
+    oauth2.NewMemoryTokenStore()}
 
   au := oauth2.Manager{
     CodeLife:       120,
