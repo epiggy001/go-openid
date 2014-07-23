@@ -2,7 +2,5 @@ src/*
 pkg/*
 *.swp
 .*
-example/client/src/*
-example/client/pkg/*
-example/server/src/*
-example/server/pkg/*
+example/client/client
+example/server/server

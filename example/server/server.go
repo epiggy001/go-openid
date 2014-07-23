@@ -6,10 +6,9 @@ package main
 
 import (
   "encoding/json"
-  "github.com/dgrijalva/jwt-go"
-  "net/http"
+  "github.com/epiggy001/go-openid"
   "github.com/epiggy001/go-openid/oauth2"
-  "time"
+  "net/http"
 )
 
 const (
@@ -48,28 +47,18 @@ func main() {
   c := oauth2.NewClient("1234", "aabbccdd",
     "http://localhost:14000/info", "")
   clientStore.Insert(c)
-  storage := &oauth2.Storage{clientStore,
-    oauth2.NewTokenStore(), oauth2.NewTokenStore(),
-    oauth2.NewTokenStore()}
 
-  au := oauth2.Manager{
-    CodeLife:       120,
-    TokenLife:      120,
-    AllowGetMethod: true,
-
-    Storage: storage,
-    ClientAuthFunc: func(r *http.Request, c *oauth2.Client) bool {
-      return true
-    }}
+  m := openid.NewClassicManager(clientStore, "http://localhost:14001",
+    []byte(myKey))
 
   // UserInfo endpoint
   http.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
     r.ParseForm()
     tokenString := r.Form.Get("token")
-    token, _ := au.Storage.Token.Read(tokenString)
+    token, _ := m.ReadToken(tokenString)
     if token != nil {
       info := make(map[string]interface{})
-      info["username"] = token.UserData["username"]
+      info["username"] = token.BelongTo()
       o, _ := json.Marshal(info)
       w.Write(o)
     }
@@ -84,48 +73,16 @@ func main() {
       w.Write([]byte("Fial to login"))
       return
     }
-    code, err := au.GenerateCode(r)
+    err := m.HandleCodeRequest(w, r, username)
     if err != nil {
       w.Write([]byte(err.Error()))
       return
     }
-    code.UserData["username"] = username
-    au.SaveCode(code)
-    url, err := au.RedirectUrlWithCode(code)
-    if err != nil {
-      w.Write([]byte(err.Error()))
-      return
-    }
-    http.Redirect(w, r, url.String(), http.StatusFound)
   })
 
   // Access token endpoint
   http.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
-    code, token, err := au.GenerateToken(r)
-    if err != nil {
-      w.Write([]byte(err.Error()))
-      return
-    }
-
-    username := code.UserData["username"]
-    token.UserData["username"] = username
-
-    jtoken := jwt.New(jwt.GetSigningMethod("RS256"))
-    jtoken.Claims["iss"] = "https://localshot:14001"
-    jtoken.Claims["sub"] = username
-    jtoken.Claims["aud"] = token.ClientId
-    jtoken.Claims["iat"] = time.Now().Unix()
-    jtoken.Claims["exp"] = time.Now().Add(time.Minute * 2).Unix()
-    // Sign and get the complete encoded token as a string
-    tokenString, err := jtoken.SignedString([]byte(myKey))
-    au.SaveToken(token)
-    s := make(map[string]interface{})
-    s["id_token"] = tokenString
-    err = au.ResponseWithToken(w, token, s)
-    if err != nil {
-      w.Write([]byte(err.Error()))
-      return
-    }
+    m.HandleTokenRequest(w, r)
   })
 
   http.ListenAndServe(":14001", nil)

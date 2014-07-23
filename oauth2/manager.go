@@ -38,12 +38,12 @@ func (m *Manager) getClient(r *http.Request) (*Client, error) {
 
   if client == nil {
     return nil, NewAuthError(nil, E_UNAUTHORIZED_CLIENT,
-      "Failt to read client")
+      "Failed to read client")
   }
 
   if !m.ClientAuthFunc(r, client) {
     return nil, NewAuthError(client, E_UNAUTHORIZED_CLIENT,
-      "Failt to validate client")
+      "Failed to validate client")
   }
   return client, nil
 }
