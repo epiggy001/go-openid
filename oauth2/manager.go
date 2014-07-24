@@ -114,7 +114,7 @@ func (m *Manager) GenerateCode(r *http.Request) (*Token, error) {
 }
 
 func (m *Manager) SaveCode(code *Token) error {
-  _, err := m.Storage.Code.Insert(code)
+  _, err := m.Storage.Code.Save(code)
   if err != nil {
     client, _ := m.Storage.Client.Read(code.ClientId)
     return NewAuthError(client, E_SERVER_ERROR, err.Error())
@@ -181,7 +181,7 @@ func (m *Manager) GenerateToken(r *http.Request) (*Token, *Token, error) {
 }
 
 func (m *Manager) SaveToken(token *Token) error {
-  _, err := m.Storage.Token.Insert(token)
+  _, err := m.Storage.Token.Save(token)
   if err != nil {
     client, _ := m.Storage.Client.Read(token.ClientId)
     return NewAuthError(client, E_SERVER_ERROR, err.Error())

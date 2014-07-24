@@ -6,13 +6,13 @@ import (
 )
 
 type ClientStore interface {
-  Insert(c *Client) (string, error)
+  Save(c *Client) (string, error)
   Remove(id string) error
   Read(id string) (*Client, error)
 }
 
 type TokenStore interface {
-  Insert(t *Token) (string, error)
+  Save(t *Token) (string, error)
   Remove(id string) error
   Read(id string) (*Token, error)
 }
@@ -26,7 +26,7 @@ func NewMemoryStore() *MemoryStore {
   return &MemoryStore{make(map[string]interface{}), new(sync.RWMutex)}
 }
 
-func (m *MemoryStore) Insert(id string, data interface{}) {
+func (m *MemoryStore) Save(id string, data interface{}) {
   m.locker.Lock()
   defer m.locker.Unlock()
   m.store[id] = data
@@ -56,8 +56,8 @@ func NewMockClientStore() *MockClientStore {
   return &MockClientStore{NewMemoryStore()}
 }
 
-func (m *MockClientStore) Insert(c *Client) (string, error) {
-  m.store.Insert(c.Id, c)
+func (m *MockClientStore) Save(c *Client) (string, error) {
+  m.store.Save(c.Id, c)
   return c.Id, nil
 }
 
@@ -79,8 +79,8 @@ func NewTokenStore() *MemoryTokenStore {
   return &MemoryTokenStore{NewMemoryStore()}
 }
 
-func (m *MemoryTokenStore) Insert(t *Token) (string, error) {
-  m.store.Insert(t.Value, t)
+func (m *MemoryTokenStore) Save(t *Token) (string, error) {
+  m.store.Save(t.Value, t)
   return t.Value, nil
 }
 

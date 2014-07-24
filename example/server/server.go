@@ -46,7 +46,7 @@ func main() {
   clientStore := oauth2.NewMockClientStore()
   c := oauth2.NewClient("1234", "aabbccdd",
     "http://localhost:14000/info", "")
-  clientStore.Insert(c)
+  clientStore.Save(c)
 
   m := openid.NewClassicManager(clientStore, "http://localhost:14001",
     []byte(myKey))

@@ -38,8 +38,8 @@ type AuthError struct {
   detail string
 }
 
-func (ae *AuthError) Code() string {
-  return ae.Code()
+func (ae *AuthError) Code() int {
+  return ae.code
 }
 
 func (ae *AuthError) ErrorString() string {
