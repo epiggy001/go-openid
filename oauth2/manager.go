@@ -41,10 +41,6 @@ func (m *Manager) getClient(r *http.Request) (*Client, error) {
       "Failed to read client")
   }
 
-  if !m.ClientAuthFunc(r, client) {
-    return nil, NewAuthError(client, E_UNAUTHORIZED_CLIENT,
-      "Failed to validate client")
-  }
   return client, nil
 }
 
@@ -90,7 +86,7 @@ func (m *Manager) GenerateCode(r *http.Request) (*Token, error) {
     return nil, err
   }
 
-  if (r.Method == "GET" && !m.AllowGetMethod) || (r.Method != "POST") {
+  if r.Method != "POST" && !m.AllowGetMethod {
     return nil, NewAuthError(client, E_INVALID_REQUEST,
       "Invalid request method")
   }
@@ -129,7 +125,7 @@ func (m *Manager) RedirectUrlWithCode(code *Token) (*url.URL, error) {
     return nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
   }
   q := uri.Query()
-  q.Set("scope", code.Scope)
+  q.Set("state", code.State)
   q.Set("code", code.Value)
   uri.RawQuery = q.Encode()
   return uri, nil
@@ -146,7 +142,12 @@ func (m *Manager) GenerateToken(r *http.Request) (*Token, *Token, error) {
     return nil, nil, err
   }
 
-  if (r.Method == "GET" && !m.AllowGetMethod) || (r.Method != "POST") {
+  if !m.ClientAuthFunc(r, client) {
+    return nil, nil, NewAuthError(client, E_UNAUTHORIZED_CLIENT,
+      "Failed to validate client")
+  }
+
+  if r.Method != "POST" && !m.AllowGetMethod {
     return nil, nil, NewAuthError(client, E_INVALID_REQUEST,
       "Invalid request method")
   }
@@ -173,6 +174,8 @@ func (m *Manager) GenerateToken(r *http.Request) (*Token, *Token, error) {
   if redirectUri == "" {
     redirectUri = client.BaseUri
   } else if !validateUri(client.BaseUri, redirectUri) {
+    return nil, nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
+  } else if code.RedirectUri != redirectUri {
     return nil, nil, NewAuthError(client, E_INVALID_REQUEST, "Invalid redirect uri")
   }
 
