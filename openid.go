@@ -92,7 +92,7 @@ func (m *Manager) HandleTokenRequest(w http.ResponseWriter,
   jtoken.Claims["sub"] = username
   jtoken.Claims["aud"] = token.ClientId
   jtoken.Claims["iat"] = time.Now().Unix()
-  jtoken.Claims["exp"] = time.Now().Add(time.Minute * 2).Unix()
+  jtoken.Claims["exp"] = time.Now().Unix() + token.Life
   // Sign and get the complete encoded token as a string
   tokenString, err := jtoken.SignedString(m.privateKey)
   s := make(map[string]interface{})
