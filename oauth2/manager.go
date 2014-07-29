@@ -86,11 +86,6 @@ func (m *Manager) GenerateCode(r *http.Request) (*Token, error) {
     return nil, err
   }
 
-  if r.Method != "POST" && !m.AllowGetMethod {
-    return nil, NewAuthError(client, E_INVALID_REQUEST,
-      "Invalid request method")
-  }
-
   responseType := r.Form.Get("response_type")
   if responseType != "code" {
     return nil, NewAuthError(client, E_UNSUPPORTED_RESPONSE_TYPE,
