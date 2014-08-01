@@ -9,6 +9,8 @@ import (
   "github.com/epiggy001/go-openid"
   "github.com/epiggy001/go-openid/oauth2"
   "net/http"
+  "html/template"
+  "log"
 )
 
 const (
@@ -42,6 +44,14 @@ CKuHRG+AP579dncdUnOMvfXOtkdM4vk0+hWASBQzM9xzVcztCa+koAugjVaLS9A+
 -----END RSA PRIVATE KEY-----`
 )
 
+var (
+  homeTempl = template.Must(template.ParseFiles("home.html"))
+)
+
+func auth(user, pwd string) bool {
+  return user == "user" && pwd == "123456"
+}
+
 func main() {
   clientStore := oauth2.NewMockClientStore()
   c := oauth2.NewClient("1234", "aabbccdd",
@@ -69,8 +79,14 @@ func main() {
     r.ParseForm()
     username := r.Form.Get("username")
     password := r.Form.Get("password")
-    if username != "user" || password != "123456" {
-      w.Write([]byte("Fial to login"))
+    if !auth(username, password) {
+      m := make(map[string]interface{})
+      m["url"] = r.URL.String()
+      w.Header().Set("Content-Type", "text/html; charset=utf-8")
+      err := homeTempl.Execute(w, m)
+      if err != nil {
+        log.Println(err)
+      }
       return
     }
     err := m.HandleCodeRequest(w, r, username)

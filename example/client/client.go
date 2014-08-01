@@ -39,11 +39,7 @@ func main() {
   // Application home endpoint
   http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("<html><body>"))
-    w.Write([]byte(fmt.Sprintf("<form method=\"POST\" action=\"%s\">", client.AuthCodeURL(""))))
-    w.Write([]byte("Username: <input type=\"text\" name=\"username\">"))
-    w.Write([]byte("Password: <input type=\"password\" name=\"password\">"))
-    w.Write([]byte("<input type=\"submit\" value=\"login\">"))
-    w.Write([]byte("</form>"))
+    w.Write([]byte(fmt.Sprintf("<a href=\"%s\">Login</a>", client.AuthCodeURL(""))))
     w.Write([]byte("</body></html>"))
   })
 
@@ -54,7 +50,6 @@ func main() {
     code := r.Form.Get("code")
 
     w.Write([]byte("<html><body>"))
-    w.Write([]byte("<h1>APP AUTH - CODE</h1>"))
 
     if code != "" {
       var jr *oauth.Token
@@ -66,7 +61,6 @@ func main() {
       }
 
       if jr != nil {
-        w.Write([]byte(fmt.Sprintf("ACCESS TOKEN: %s<br/>\n", jr.AccessToken)))
         tokenString := jr.Extra["id_token"]
         token, _ := jwt.Parse(tokenString, func(token *jwt.Token) ([]byte, error) {
           return []byte(myKey), nil
