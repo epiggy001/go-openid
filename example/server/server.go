@@ -5,16 +5,16 @@ package main
 // http://localhost:14000/app
 
 import (
-  "encoding/json"
-  "github.com/epiggy001/go-openid"
-  "github.com/epiggy001/go-openid/oauth2"
-  "net/http"
-  "html/template"
-  "log"
+	"encoding/json"
+	"github.com/epiggy001/go-openid"
+	"github.com/epiggy001/go-openid/oauth2"
+	"html/template"
+	"log"
+	"net/http"
 )
 
 const (
-  myKey = `
+	myKey = `
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEA4f5wg5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEU/wT8RDtn
 SgFEZOQpHEgQ7JL38xUfU0Y3g6aYw9QT0hJ7mCpz9Er5qLaMXJwZxzHzAahlfA0i
@@ -45,62 +45,62 @@ CKuHRG+AP579dncdUnOMvfXOtkdM4vk0+hWASBQzM9xzVcztCa+koAugjVaLS9A+
 )
 
 var (
-  homeTempl = template.Must(template.ParseFiles("home.html"))
+	homeTempl = template.Must(template.ParseFiles("home.html"))
 )
 
 func auth(user, pwd string) bool {
-  return user == "user" && pwd == "123456"
+	return user == "user" && pwd == "123456"
 }
 
 func main() {
-  clientStore, err:= oauth2.NewFileClientStore("client.txt")
-  if err != nil {
-    log.Println(err)
-    return
-  }
+	clientStore, err := oauth2.NewFileClientStore("client.txt")
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-  m := openid.NewClassicManager(clientStore, "http://localhost:14001",
-    []byte(myKey))
+	m := openid.NewClassicManager(clientStore, "http://localhost:14001",
+		[]byte(myKey))
 
-  // UserInfo endpoint
-  http.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
-    r.ParseForm()
-    tokenString := r.Form.Get("token")
-    token, _ := m.ReadToken(tokenString)
-    if token != nil {
-      info := make(map[string]interface{})
-      info["username"] = token.BelongTo()
-      o, _ := json.Marshal(info)
-      w.Write(o)
-    }
-  })
+	// UserInfo endpoint
+	http.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		tokenString := r.Form.Get("token")
+		token, _ := m.ReadToken(tokenString)
+		if token != nil {
+			info := make(map[string]interface{})
+			info["username"] = token.BelongTo()
+			o, _ := json.Marshal(info)
+			w.Write(o)
+		}
+	})
 
-  // Authorization code endpoint
-  http.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
-    r.ParseForm()
-    username := r.Form.Get("username")
-    password := r.Form.Get("password")
-    if !auth(username, password) {
-      m := make(map[string]interface{})
-      m["url"] = r.URL.String()
-      w.Header().Set("Content-Type", "text/html; charset=utf-8")
-      err := homeTempl.Execute(w, m)
-      if err != nil {
-        log.Println(err)
-      }
-      return
-    }
-    err := m.HandleCodeRequest(w, r, username)
-    if err != nil {
-      w.Write([]byte(err.Error()))
-      return
-    }
-  })
+	// Authorization code endpoint
+	http.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		username := r.Form.Get("username")
+		password := r.Form.Get("password")
+		if !auth(username, password) {
+			m := make(map[string]interface{})
+			m["url"] = r.URL.String()
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			err := homeTempl.Execute(w, m)
+			if err != nil {
+				log.Println(err)
+			}
+			return
+		}
+		err := m.HandleCodeRequest(w, r, username)
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			return
+		}
+	})
 
-  // Access token endpoint
-  http.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
-    m.HandleTokenRequest(w, r)
-  })
+	// Access token endpoint
+	http.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+		m.HandleTokenRequest(w, r)
+	})
 
-  http.ListenAndServe(":14001", nil)
+	http.ListenAndServe(":14001", nil)
 }
