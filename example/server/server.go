@@ -53,10 +53,11 @@ func auth(user, pwd string) bool {
 }
 
 func main() {
-  clientStore := oauth2.NewMockClientStore()
-  c := oauth2.NewClient("1234", "aabbccdd",
-    "http://localhost:14000/info", "")
-  clientStore.Save(c)
+  clientStore, err:= oauth2.NewFileClientStore("client.txt")
+  if err != nil {
+    log.Println(err)
+    return
+  }
 
   m := openid.NewClassicManager(clientStore, "http://localhost:14001",
     []byte(myKey))
