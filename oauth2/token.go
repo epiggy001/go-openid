@@ -1,9 +1,10 @@
 package oauth2
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"encoding/base64"
 	"time"
+	"crypto/rand"
+  "io"
 )
 
 type Token struct {
@@ -18,8 +19,11 @@ type Token struct {
 }
 
 func generateToken() string {
-	token := uuid.New()
-	return base64.StdEncoding.EncodeToString([]byte(token))
+  token := make([]byte, 16)
+  if _, err := io.ReadFull(rand.Reader, token); err != nil {
+    panic(err.Error())
+  }
+	return base64.StdEncoding.EncodeToString(token)
 }
 
 func NewToken(clientId, scope, uri string,
