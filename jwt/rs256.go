@@ -1,6 +1,3 @@
-// Copyright 2014 Clustertech Limited. All rights reserved.
-//
-// Author: jackeychen (jackeychen@clustertech.com)
 package jwt
 
 import (
