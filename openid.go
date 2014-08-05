@@ -1,7 +1,7 @@
 package openid
 
 import (
-	"github.com/dgrijalva/jwt-go"
+	"github.com/epiggy001/go-openid/jwt"
 	"github.com/epiggy001/go-openid/oauth2"
 	"net/http"
 	"time"
@@ -18,6 +18,7 @@ type Manager struct {
 	om         *oauth2.Manager
 	iss        string
 	privateKey []byte
+	alg        jwt.Algorithm
 }
 
 type UserToken oauth2.Token
@@ -28,7 +29,7 @@ func (t *UserToken) BelongTo() string {
 }
 
 func NewClassicManager(clientStore oauth2.ClientStore, iss string,
-	key []byte) *Manager {
+	key []byte) (*Manager, error) {
 	storage := &oauth2.Storage{clientStore,
 		oauth2.NewTokenStore(), oauth2.NewTokenStore(),
 		oauth2.NewTokenStore()}
@@ -43,7 +44,11 @@ func NewClassicManager(clientStore oauth2.ClientStore, iss string,
 			return c != nil
 		}}
 
-	return &Manager{om, iss, key}
+	alg, err := jwt.NewRsaAlg(key)
+	if err != nil {
+		return nil, err
+	}
+	return &Manager{om, iss, key, alg}, nil
 }
 
 func (m *Manager) ReadToken(tokenString string) (*UserToken, error) {
@@ -87,14 +92,14 @@ func (m *Manager) HandleTokenRequest(w http.ResponseWriter,
 	username := code.UserData[userKey]
 	token.UserData[userKey] = username
 
-	jtoken := jwt.New(jwt.GetSigningMethod("RS256"))
+	jtoken := jwt.New(m.alg)
 	jtoken.Claims["iss"] = m.iss
 	jtoken.Claims["sub"] = username
 	jtoken.Claims["aud"] = token.ClientId
 	jtoken.Claims["iat"] = time.Now().Unix()
 	jtoken.Claims["exp"] = time.Now().Unix() + token.Life
 	// Sign and get the complete encoded token as a string
-	tokenString, err := jtoken.SignedString(m.privateKey)
+	tokenString, err := jtoken.Sign()
 	s := make(map[string]interface{})
 	s["id_token"] = tokenString
 	err = m.om.ResponseWithToken(w, token, s)

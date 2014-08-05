@@ -59,9 +59,12 @@ func main() {
 		return
 	}
 
-	m := openid.NewClassicManager(clientStore, "http://localhost:14001",
+	m, err := openid.NewClassicManager(clientStore, "http://localhost:14001",
 		[]byte(myKey))
 
+	if err != nil {
+		log.Fatal(err)
+	}
 	// UserInfo endpoint
 	http.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()

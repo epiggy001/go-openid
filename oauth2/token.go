@@ -1,10 +1,10 @@
 package oauth2
 
 import (
-	"encoding/base64"
-	"time"
 	"crypto/rand"
-  "io"
+	"encoding/base64"
+	"io"
+	"time"
 )
 
 type Token struct {
@@ -19,10 +19,10 @@ type Token struct {
 }
 
 func generateToken() string {
-  token := make([]byte, 16)
-  if _, err := io.ReadFull(rand.Reader, token); err != nil {
-    panic(err.Error())
-  }
+	token := make([]byte, 16)
+	if _, err := io.ReadFull(rand.Reader, token); err != nil {
+		panic(err.Error())
+	}
 	return base64.StdEncoding.EncodeToString(token)
 }
 

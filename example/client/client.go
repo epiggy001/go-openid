@@ -62,9 +62,13 @@ func main() {
 
 			if jr != nil {
 				tokenString := jr.Extra["id_token"]
-				token, _ := jwt.Parse(tokenString, func(token *jwt.Token) ([]byte, error) {
+				token, err := jwt.Parse(tokenString, func(token *jwt.Token) ([]byte, error) {
 					return []byte(myKey), nil
 				})
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
 				// TODO: Add jwt checking
 				if token.Valid {
 					resp, err := ctransport.Client().Get("http://localhost:14001/userinfo?token=" + jr.AccessToken)
