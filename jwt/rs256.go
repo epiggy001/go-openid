@@ -9,7 +9,6 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"errors"
 )
@@ -43,7 +42,7 @@ func (alg *RsaAlg) Sign(input string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return base64.URLEncoding.EncodeToString(signed), nil
+	return EncodeToString(signed), nil
 }
 
 func (alg *RsaAlg) Name() string {

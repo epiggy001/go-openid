@@ -20,6 +20,10 @@ type JWT struct {
 	Alg    Algorithm
 }
 
+func EncodeToString(in []byte) string {
+	return strings.TrimRight(base64.URLEncoding.EncodeToString(in), "=")
+}
+
 func New(alg Algorithm) *JWT {
 	j := &JWT{}
 	j.Header.Typ = "JWT"
@@ -35,13 +39,13 @@ func (j *JWT) Sign() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	parts[0] = base64.URLEncoding.EncodeToString(temp)
+	parts[0] = EncodeToString(temp)
 
 	temp, err = json.Marshal(j.Claims)
 	if err != nil {
 		return "", err
 	}
-	parts[1] = base64.URLEncoding.EncodeToString(temp)
+	parts[1] = EncodeToString(temp)
 
 	parts[2], err = j.Alg.Sign(strings.Join(parts[:2], "."))
 	if err != nil {
